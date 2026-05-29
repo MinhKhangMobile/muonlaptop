@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phần Mềm Quản Lý & Cho Mượn Laptop - Đầy Đủ Lịch Sử</title>
+    <!-- Nhúng thư viện SheetJS để đọc file Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #f1c40f;
+            --info-color: #3498db;
+            --light-bg: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #eef2f3;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-top: 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 3fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 992px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--light-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            height: fit-content;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button, .btn-label {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .btn-submit { background-color: var(--primary-color); color: white; }
+        .btn-submit:hover { background-color: #34495e; }
+        
+        .btn-excel { background-color: var(--info-color); color: white; margin-top: 10px; }
+        .btn-excel:hover { background-color: #2980b9; }
+
+        .btn-export-history { background-color: var(--success-color); color: white; width: auto; display: inline-block; padding: 8px 15px; font-size: 13px; margin-bottom: 10px; margin-right: 5px;}
+        .btn-export-history:hover { background-color: #27ae60; }
+        
+        .btn-clear-history { background-color: var(--danger-color); color: white; width: auto; display: inline-block; padding: 8px 15px; font-size: 13px; margin-bottom: 10px; }
+        .btn-clear-history:hover { background-color: #c0392b; }
+
+        .filter-box {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .filter-box input, .filter-box select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .status-ready { background-color: #d4edda; color: #155724; }
+        .status-borrowed { background-color: #fff3cd; color: #856404; }
+
+        .actions button {
+            width: auto;
+            display: inline-block;
+            padding: 6px 12px;
+            margin-right: 5px;
+            font-size: 12px;
+        }
+        .btn-borrow { background-color: var(--warning-color); color: black; }
+        .btn-return { background-color: var(--success-color); color: white; }
+        .btn-delete { background-color: var(--danger-color); color: white; }
+
+        .info-block {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+
+        /* Giao diện Tab điều hướng */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ccc;
+        }
+        .tab-button {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #666;
+            width: auto;
+            border-radius: 0;
+        }
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>💻 HỆ THỐNG QUẢN LÝ & CHO MƯỢN LAPTOP</h1>
+    
+    <div class="grid">
+        <!-- BÊN TRÁI: THÊM MÁY & IMPORT EXCEL -->
+        <div>
+            <div class="card">
+                <h2>1. Import Nhân Viên</h2>
+                <p style="font-size: 12px; color: #666; margin-top: 0;">Nạp danh sách từ file Excel để tự động điền nhanh theo số thẻ.</p>
+                <label for="fileInput" class="btn-label btn-excel">📁 Chọn File Excel Nhân Viên</label>
+                <input type="file" id="fileInput" accept=".xlsx, .xls">
+                <div id="importStatus" style="font-size: 12px; margin-top: 8px; color: var(--success-color); font-weight: bold; text-align: center;"></div>
+            </div>
+
+            <div class="card">
+                <h2>2. Thêm Laptop Mới</h2>
+                <form id="laptopForm">
+                    <div class="form-group">
+                        <label for="laptopId">Mã định danh Laptop:</label>
+                        <input type="text" id="laptopId" required placeholder="Ví dụ: LT-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="laptopName">Tên máy / Cấu hình:</label>
+                        <input type="text" id="laptopName" required placeholder="Dell XPS, ThinkPad T14...">
+                    </div>
+                    <button type="submit" class="btn-submit">Thêm Vào Kho Máy</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- BÊN PHẢI: GIAO DIỆN CHÍNH CHIA TAB -->
+        <div>
+            <!-- Thanh chuyển đổi tab giữa Trạng thái hiện tại và Lịch sử -->
+            <div class="tabs">
+                <button class="tab-button active" onclick="switchTab('tab-current')">🔄 Đang Mượn & Sẵn Sàng</button>
+                <button class="tab-button" onclick="switchTab('tab-history')">📜 Lịch Sử Cho Mượn Máy</button>
+            </div>
+
+            <!-- TAB 1: QUẢN LÝ HIỆN TẠI -->
+            <div id="tab-current" class="tab-content active">
+                <div class="filter-box">
+                    <input type="text" id="searchBox" placeholder="Tìm kiếm nhanh (Mã máy, tên máy, số thẻ, tên người mượn, bộ phận...)">
+                    <select id="filterStatus">
+                        <option value="all">Tất cả trạng thái</option>
+                        <option value="Sẵn sàng">Sẵn sàng cho mượn</option>
+                        <option value="Đang mượn">Đang cho mượn</option>
+                    </select>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã Máy</th>
+                                <th>Tên / Cấu Hình Laptop</th>
+                                <th>Trạng Thái Máy</th>
+                                <th>Thông Tin Chi Tiết Người Mượn</th>
+                                <th>Hành Động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="laptopTableBody">
+                            <!-- JS tự động render dữ liệu -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 2: LỊCH SỬ CHO MƯỢN TRƯỚC ĐÂY -->
+            <div id="tab-history" class="tab-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <input type="text" id="searchHistoryBox" placeholder="Tìm trong lịch sử (Số thẻ, tên nhân viên, bộ phận, mã máy...)" style="padding: 10px; width: 45%; min-width: 250px; border: 1px solid #ccc; border-radius: 5px;">
+                    <div>
+                        <button class="btn-export-history" onclick="exportHistoryToExcel()">📥 Xuất Excel Lịch Sử</button>
+                        <button class="btn-clear-history" onclick="clearHistory()">🗑️ Xóa Toàn Bộ Lịch Sử</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã Máy</th>
+                                <th>Tên Laptop</th>
+                                <th>Số Thẻ</th>
+                                <th>Họ Tên Nhân Viên</th>
+                                <th>Bộ Phận</th>
+                                <th>Ngày Mượn</th>
+                                <th>Ngày Trả / Thu Hồi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- JS tự động render dữ liệu lịch sử -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // Dữ liệu máy tính hiện tại
+    let laptops = JSON.parse(localStorage.getItem('laptops_v3')) || [
+        { id: 'LT-01', name: 'Dell Latitude 5420 i5', status: 'Sẵn sàng', empCard: '', empName: '', empDept: '', date: '' },
+        { id: 'LT-02', name: 'ThinkPad L14 Ryzen 5', status: 'Sẵn sàng', empCard: '', empName: '', empDept: '', date: '' }
+    ];
+
+    // Dữ liệu nhân viên được import từ Excel
+    let employees = JSON.parse(localStorage.getItem('employees')) || [];
+
+    // MẢNG LƯU TRỮ LỊCH SỬ CÁC LẦN MƯỢN TRƯỚC
+    let borrowHistory = JSON.parse(localStorage.getItem('borrowHistory')) || [];
+
+    const laptopForm = document.getElementById('laptopForm');
+    const laptopTableBody = document.getElementById('laptopTableBody');
+    const historyTableBody = document.getElementById('historyTableBody');
+    const searchBox = document.getElementById('searchBox');
+    const searchHistoryBox = document.getElementById('searchHistoryBox');
+    const filterStatus = document.getElementById('filterStatus');
+    const fileInput = document.getElementById('fileInput');
+    const importStatus = document.getElementById('importStatus');
+
+    if(employees.length > 0) {
+        importStatus.textContent = `Đang lưu dữ liệu của ${employees.length} nhân viên`;
+    }
+
+    function saveToStorage() {
+        localStorage.setItem('laptops_v3', JSON.stringify(laptops));
+        localStorage.setItem('employees', JSON.stringify(employees));
+        try {
+            localStorage.setItem('borrowHistory', JSON.stringify(borrowHistory));
+        } catch (e) {
+            alert('Trình duyệt đầy bộ nhớ đệm LocalStorage! Vui lòng xuất file Excel lịch sử và bấm Xóa bớt lịch sử.');
+        }
+    }
+
+    // Chuyển đổi Tab qua lại trực quan
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+        
+        if (tabId === 'tab-history') {
+            renderHistory();
+        } else {
+            renderLaptops();
+        }
+    }
+
+    // Đọc Excel nhân viên
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                
+                if (jsonData.length === 0) { alert('File Excel không chứa dữ liệu!'); return; }
+
+                employees = jsonData.map(row => {
+                    return {
+                        card: row['Số thẻ'] || row['Mã nhân viên'] || row['Số thẻ nhân viên'] || row['Card ID'] || Object.values(row)[0],
+                        name: row['Họ tên'] || row['Tên nhân viên'] || row['Full Name'] || Object.values(row)[1],
+                        dept: row['Bộ phận'] || row['Phòng ban'] || row['Department'] || Object.values(row)[2]
+                    };
+                }).filter(emp => emp.card && emp.name);
+
+                saveToStorage();
+                importStatus.textContent = `✅ Đã lưu ${employees.length} nhân viên!`;
+                alert(`Thành công! Đã nạp ${employees.length} nhân viên vào cơ sở dữ liệu.`);
+            } catch (error) {
+                alert('Lỗi định dạng file Excel.');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    // Render danh sách máy hiện tại
+    function renderLaptops() {
+        laptopTableBody.innerHTML = '';
+        const searchTerm = searchBox.value.toLowerCase();
+        const statusFilter = filterStatus.value;
+
+        laptops.forEach((laptop, index) => {
+            const matchesSearch = 
+                laptop.id.toLowerCase().includes(searchTerm) || 
+                laptop.name.toLowerCase().includes(searchTerm) ||
+                (laptop.empName && laptop.empName.toLowerCase().includes(searchTerm)) ||
+                (laptop.empCard && laptop.empCard.toString().toLowerCase().includes(searchTerm)) ||
+                (laptop.empDept && laptop.empDept.toLowerCase().includes(searchTerm));
+                
+            const matchesStatus = statusFilter === 'all' || laptop.status === statusFilter;
+
+            if (matchesSearch && matchesStatus) {
+                const tr = document.createElement('tr');
+                const statusClass = laptop.status === 'Sẵn sàng' ? 'status-ready' : 'status-borrowed';
+                
+                let borrowerInfo = '-';
+                if (laptop.status === 'Đang mượn') {
+                    borrowerInfo = `
+                        <div class="info-block">
+                            💳 <b>Số thẻ:</b> ${laptop.empCard}<br>
+                            👤 <b>Họ tên:</b> ${laptop.empName}<br>
+                            🏢 <b>Bộ phận:</b> ${laptop.empDept}<br>
+                            📅 <b>Ngày mượn:</b> ${laptop.date}
+                        </div>
+                    `;
+                }
+                
+                let actionButtons = '';
+                if (laptop.status === 'Sẵn sàng') {
+                    actionButtons = `<button class="btn-borrow" onclick="borrowLaptop(${index})">Cho Mượn</button>`;
+                } else {
+                    actionButtons = `<button class="btn-return" onclick="returnLaptop(${index})">Thu Hồi Máy</button>`;
+                }
+                actionButtons += `<button class="btn-delete" onclick="deleteLaptop(${index})">Xóa</button>`;
+
+                tr.innerHTML = `
+                    <td><strong>${laptop.id}</strong></td>
+                    <td>💻 ${laptop.name}</td>
+                    <td><span class="status ${statusClass}">${laptop.status}</span></td>
+                    <td>${borrowerInfo}</td>
+                    <td class="actions">${actionButtons}</td>
+                `;
+                laptopTableBody.appendChild(tr);
+            }
+        });
+    }
+
+    // Render danh sách lịch sử mượn trả máy trước đây
+    function renderHistory() {
+        historyTableBody.innerHTML = '';
+        const searchHistoryTerm = searchHistoryBox.value.toLowerCase();
+
+        // Đảo thứ tự mảng để các lượt mượn mới nhất luôn hiện lên hàng đầu
+        const sortedHistory = [...borrowHistory].reverse();
+
+        sortedHistory.forEach(item => {
+            const matchesSearch = 
+                item.id.toLowerCase().includes(searchHistoryTerm) ||
+                item.name.toLowerCase().includes(searchHistoryTerm) ||
+                item.empCard.toString().toLowerCase().includes(searchHistoryTerm) ||
+                item.empName.toLowerCase().includes(searchHistoryTerm) ||
+                item.empDept.toLowerCase().includes(searchHistoryTerm);
+
+            if (matchesSearch) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${item.id}</strong></td>
+                    <td>${item.name}</td>
+                    <td>${item.empCard}</td>
+                    <td><b>${item.empName}</b></td>
+                    <td>${item.empDept}</td>
+                    <td><small>${item.borrowDate}</small></td>
+                    <td><span style="color:var(--success-color); font-weight:bold;">✓ Đã trả:</span> <br><small>${item.returnDate}</small></td>
+                `;
+                historyTableBody.appendChild(tr);
+            }
+        });
+    }
+
+    // Thêm máy thủ công vào kho
+    laptopForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('laptopId').value.trim();
+        const name = document.getElementById('laptopName').value.trim();
+        if (laptops.some(laptop => laptop.id.toLowerCase() === id.toLowerCase())) {
+            alert('Mã máy đã tồn tại!');
+            return;
+        }
+        laptops.push({ id: id, name: name, status: 'Sẵn sàng', empCard: '', empName: '', empDept: '', date: '' });
+        saveToStorage();
+        renderLaptops();
+        laptopForm.reset();
+    });
+
+    // Thao tác mượn máy
+    function borrowLaptop(index) {
+        let empCard = prompt('Nhập Số thẻ nhân viên mượn máy:');
+        if (empCard === null) return;
+        empCard = empCard.trim();
+        if (empCard === '') { alert('Số thẻ không được trống!'); return; }
+
+        let foundEmp = employees.find(emp => emp.card.toString().trim().toLowerCase() === empCard.toLowerCase());
+        let empName = ''; let empDept = '';
+
+        if (foundEmp) {
+            empName = foundEmp.name; empDept = foundEmp.dept;
+            alert(`Nhân viên mượn máy: ${empName} (Bộ phận: ${empDept})`);
+        } else {
+            alert('Số thẻ không có trong danh sách import. Tiến hành nhập tay thủ công.');
+            empName = prompt('Nhập Họ và Tên nhân viên:'); if (!empName) return;
+            empDept = prompt('Nhập Bộ phận / Phòng ban:'); if (!empDept) return;
+        }
+
+        const now = new Date();
+        const dateString = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+        laptops[index].status = 'Đang mượn';
+        laptops[index].empCard = empCard;
+        laptops[index].empName = empName;
+        laptops[index].empDept = empDept;
+        laptops[index].date = dateString;
+
+        saveToStorage();
+        renderLaptops();
+    }
+
+    // THAO TÁC THU HỒI MÁY ĐỒNG THỜI TỰ ĐỘNG GHI LẠI VÀO LỊCH SỬ
+    function returnLaptop(index) {
+        const targetLaptop = laptops[index];
+        if (confirm(`Xác nhận thu hồi máy ${targetLaptop.id} từ nhân viên ${targetLaptop.empName}?`)) {
+            
+            const now = new Date();
+            const returnDateString = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+            // Tạo một bản ghi log lịch sử mượn hoàn chỉnh
+            const historyLog = {
+                id: targetLaptop.id,
+                name: targetLaptop.name,
+                empCard: targetLaptop.empCard,
+                empName: targetLaptop.empName,
+                empDept: targetLaptop.empDept,
+                borrowDate: targetLaptop.date,
+                returnDate: returnDateString
+            };
+
+            // Lưu bản ghi vào bộ nhớ lịch sử hệ thống
+            borrowHistory.push(historyLog);
+
+            // Reset trạng thái máy về Sẵn sàng
+            laptops[index].status = 'Sẵn sàng';
+            laptops[index].empCard = '';
+            laptops[index].empName = '';
+            laptops[index].empDept = '';
+            laptops[index].date = '';
+            
+            saveToStorage();
+            renderLaptops();
+            alert('Thu hồi máy thành công và đã ghi nhận vào tab Lịch sử.');
+        }
+    }
+
+    // TÍNH NĂNG MỚI: XUẤT TOÀN BỘ LỊCH SỬ RA EXCEL
+    function exportHistoryToExcel() {
+        if (borrowHistory.length === 0) {
+            alert('Không có dữ liệu lịch sử để xuất!');
+            return;
+        }
+
+        // Định dạng lại tiêu đề cột cho file Excel đầu ra
+        const formattedData = borrowHistory.map((item, index) => ({
+            "STT": index + 1,
+            "Mã Máy Laptop": item.id,
+            "Tên Laptop": item.name,
+            "Số Thẻ": item.empCard,
+            "Họ Tên Nhân Viên": item.empName,
+            "Bộ Phận / Phòng Ban": item.empDept,
+            "Ngày Giờ Mượn": item.borrowDate,
+            "Ngày Giờ Trả": item.returnDate
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "LichSuMuonMay");
+
+        // Đặt tên file xuất ra kèm mốc ngày giờ hiện tại
+        const now = new Date();
+        const timeStamp = `${now.getFullYear()}${now.getMonth()+1}${now.getDate()}_${now.getHours()}${now.getMinutes()}`;
+        XLSX.writeFile(workbook, `Lich_Su_Muon_Laptop_${timeStamp}.xlsx`);
+    }
+
+    // Xóa vĩnh viễn toàn bộ nhật ký lịch sử log
+    function clearHistory() {
+        if (confirm('Bạn có chắc chắn muốn XÓA VĨNH VIỄN toàn bộ danh sách lịch sử mượn trả từ trước đến nay? Thao tác này không thể hoàn tác!')) {
+            borrowHistory = [];
+            saveToStorage();
+            renderHistory();
+        }
+    }
+
+    function deleteLaptop(index) {
+        if (confirm(`Xóa hẳn thiết bị ${laptops[index].id} khỏi hệ thống?`)) {
+            laptops.splice(index, 1);
+            saveToStorage();
+            renderLaptops();
+        }
+    }
+
+    // Sự kiện tìm kiếm thời gian thực (Gõ đến đâu lọc đến đấy)
+    searchBox.addEventListener('input', renderLaptops);
+    filterStatus.addEventListener('change', renderLaptops);
+    searchHistoryBox.addEventListener('input', renderHistory);
+
+    // Chạy render dữ liệu mặc định khi bắt đầu mở app
+    renderLaptops();
+</script>
+
+</body>
+</html>
